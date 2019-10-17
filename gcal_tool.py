@@ -40,23 +40,45 @@ def get_events():
     # Call the Calendar API
     now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
     colors = service.colors().get(fields = 'event').execute()
-    events_result = service.events().list(calendarId='primary', timeMin=now, maxResults =10,
+    events_result  = service.events().list(calendarId='primary', timeMin=now, maxResults =10,
                                         singleEvents=True, orderBy='startTime').execute()
     events = events_result.get('items', []) 
     return events, colors
 
-def main():
+def calculate_hours_spent(event):
+    start = event['start'].get('dateTime', event['start'].get('date'))
+    end = event['end'].get('dateTime', event['end'].get('date'))
+    datetime_diff = datetime.datetime.strptime(end[:end.rfind("-")],'%Y-%m-%dT%H:%M:%S%f') - datetime.datetime.strptime(start[:start.rfind("-")],'%Y-%m-%dT%H:%M:%S%f')
+    #return datetime_diff.days
+    return datetime_diff.seconds / 3600
+    
+
+def create_event_color_map():
     events = get_events()[0]
     colors = get_events()[1]
+    event_color_map = {}
     if not events:
         print('No upcoming events found.')
     for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
+        hours = calculate_hours_spent(event)
+        name = event['summary']
+        #print(name)
         if 'colorId' in event:
             clr = colors['event'][event['colorId']]['background']
         else:
             clr = "None"
-        print(start, event['summary'], clr)
+        if event_color_map.get(name, -1) == -1:
+            event_color_map[name] = [clr, hours]
+        else:
+            event_color_map[name][1] += hours
+        #print(start, name, clr)
+    #print(event_color_map)
+    return event_color_map
+
+def main():
+    emap = create_event_color_map()
+    print(emap)
 
 if __name__ == '__main__':
     main()
+
