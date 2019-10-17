@@ -49,7 +49,6 @@ def calculate_hours_spent(event):
     start = event['start'].get('dateTime', event['start'].get('date'))
     end = event['end'].get('dateTime', event['end'].get('date'))
     datetime_diff = datetime.datetime.strptime(end[:end.rfind("-")],'%Y-%m-%dT%H:%M:%S%f') - datetime.datetime.strptime(start[:start.rfind("-")],'%Y-%m-%dT%H:%M:%S%f')
-    #return datetime_diff.days
     return datetime_diff.seconds / 3600
     
 
@@ -62,7 +61,6 @@ def create_event_color_map():
     for event in events:
         hours = calculate_hours_spent(event)
         name = event['summary']
-        #print(name)
         if 'colorId' in event:
             clr = colors['event'][event['colorId']]['background']
         else:
@@ -71,8 +69,6 @@ def create_event_color_map():
             event_color_map[name] = [clr, hours]
         else:
             event_color_map[name][1] += hours
-        #print(start, name, clr)
-    #print(event_color_map)
     return event_color_map
 
 def main():
