@@ -6,10 +6,11 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-#Modified from Google Calendar API Quickstart
-
+# Modified from Google Calendar API Quickstart
+WORKING_HOURS = 9
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+
 
 def get_creds():
     creds = None
@@ -32,25 +33,43 @@ def get_creds():
             pickle.dump(creds, token)
     return creds
 
+
 def get_events():
     creds = get_creds()
 
     service = build('calendar', 'v3', credentials=creds)
 
     # Call the Calendar API
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-    colors = service.colors().get(fields = 'event').execute()
-    events_result  = service.events().list(calendarId='primary', timeMin=now, maxResults =10,
-                                        singleEvents=True, orderBy='startTime').execute()
-    events = events_result.get('items', []) 
+    now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+    colors = service.colors().get(fields='event').execute()
+    events_result = service.events().list(calendarId='primary', timeMin=now, maxResults=10,
+                                          singleEvents=True, orderBy='startTime').execute()
+    events = events_result.get('items', [])
     return events, colors
 
+
+def convert_google_datetime(datetime_str):
+    return datetime.datetime.strptime(datetime_str[:datetime_str.rfind("-")], '%Y-%m-%dT%H:%M:%S%f')
+
+
+def calculate_hours_free(hours_spent):
+    return WORKING_HOURS - hours_spent
+
+
+def get_start(event):
+    return event['start'].get('dateTime', event['start'].get('date'))
+
+
+def get_end(event):
+    return event['end'].get('dateTime', event['end'].get('date'))
+
+
 def calculate_hours_spent(event):
-    start = event['start'].get('dateTime', event['start'].get('date'))
-    end = event['end'].get('dateTime', event['end'].get('date'))
-    datetime_diff = datetime.datetime.strptime(end[:end.rfind("-")],'%Y-%m-%dT%H:%M:%S%f') - datetime.datetime.strptime(start[:start.rfind("-")],'%Y-%m-%dT%H:%M:%S%f')
+    start = get_start(event)
+    end = get_end(event)
+    datetime_diff = convert_google_datetime(end) - convert_google_datetime(start)
     return datetime_diff.seconds / 3600
-    
+
 
 def create_event_color_map():
     events = get_events()[0]
@@ -59,22 +78,19 @@ def create_event_color_map():
     if not events:
         print('No upcoming events found.')
     for event in events:
-        hours = calculate_hours_spent(event)
+        start = get_start(event)
+        end = get_end(event)
+        hours_spent = calculate_hours_spent(event)
         name = event['summary']
         if 'colorId' in event:
             clr = colors['event'][event['colorId']]['background']
         else:
             clr = "None"
         if event_color_map.get(name, -1) == -1:
-            event_color_map[name] = [clr, hours]
+            hours_free = calculate_hours_free(hours_spent)
+            event_color_map[name] = [clr, start, end, hours_spent, hours_free]
         else:
-            event_color_map[name][1] += hours
+            event_color_map[name][3] += hours_spent
+            hours_free = calculate_hours_free(event_color_map[name][3])  # cur hours spent
+            event_color_map[name][-1] = hours_free
     return event_color_map
-
-def main():
-    emap = create_event_color_map()
-    print(emap)
-
-if __name__ == '__main__':
-    main()
-
