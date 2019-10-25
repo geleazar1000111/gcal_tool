@@ -26,7 +26,7 @@ def get_creds():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+                'client_secrets.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token.pickle', 'wb') as token:
@@ -34,7 +34,7 @@ def get_creds():
     return creds
 
 
-def get_events():
+def get_events(max_results):
     creds = get_creds()
 
     service = build('calendar', 'v3', credentials=creds)
@@ -42,7 +42,7 @@ def get_events():
     # Call the Calendar API
     now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
     colors = service.colors().get(fields='event').execute()
-    events_result = service.events().list(calendarId='primary', timeMin=now, maxResults=10,
+    events_result = service.events().list(calendarId='primary', timeMin=now, maxResults=max_results,
                                           singleEvents=True, orderBy='startTime').execute()
     events = events_result.get('items', [])
     return events, colors
@@ -71,9 +71,10 @@ def calculate_hours_spent(event):
     return datetime_diff.seconds / 3600
 
 
-def create_event_color_map():
-    events = get_events()[0]
-    colors = get_events()[1]
+def create_event_color_map(max_results):
+    events_list = get_events(max_results)
+    events = events_list[0]
+    colors = events_list[1]
     event_color_map = {}
     if not events:
         print('No upcoming events found.')
