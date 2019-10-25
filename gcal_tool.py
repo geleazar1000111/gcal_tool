@@ -36,9 +36,7 @@ def get_creds():
 
 def get_events(max_results):
     creds = get_creds()
-
     service = build('calendar', 'v3', credentials=creds)
-
     # Call the Calendar API
     now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
     colors = service.colors().get(fields='event').execute()
@@ -95,3 +93,4 @@ def create_event_color_map(max_results):
             hours_free = calculate_hours_free(event_color_map[name][3])  # cur hours spent
             event_color_map[name][-1] = hours_free
     return event_color_map
+
