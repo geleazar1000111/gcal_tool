@@ -1,4 +1,5 @@
 from __future__ import print_function
+import re
 import datetime
 import pickle
 import os.path
@@ -7,6 +8,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
 # Modified from Google Calendar API Quickstart
+VALID_DATETIME_FORMATS = ('%Y-%m-%dT%H:%M:%S%f', '%Y-%m-%d')
 WORKING_HOURS = 9
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
@@ -46,8 +48,18 @@ def get_events(max_results):
     return events, colors
 
 
+def is_single_day_event(datetime_str):
+    regex_obj = re.compile('.*-.*-.*T.*:.*:.*')
+    if regex_obj.match(datetime_str):
+        return True
+    return False
+
+
 def convert_google_datetime(datetime_str):
-    return datetime.datetime.strptime(datetime_str[:datetime_str.rfind("-")], '%Y-%m-%dT%H:%M:%S%f')
+    if not is_single_day_event(datetime_str[:datetime_str.rfind("-")]):
+        return datetime.datetime.strptime(datetime_str, '%Y-%m-%d')
+    else:
+        return datetime.datetime.strptime(datetime_str[:datetime_str.rfind("-")], '%Y-%m-%dT%H:%M:%S%f')
 
 
 def calculate_hours_free(hours_spent):
@@ -66,14 +78,14 @@ def calculate_hours_spent(event):
     start = get_start(event)
     end = get_end(event)
     datetime_diff = convert_google_datetime(end) - convert_google_datetime(start)
-    return datetime_diff.seconds / 3600
+    return datetime_diff.total_seconds() / 3600
 
 
-def create_event_color_map(max_results):
+def create_event_color_list(max_results):
     events_list = get_events(max_results)
     events = events_list[0]
     colors = events_list[1]
-    event_color_map = {}
+    event_color_list = []
     if not events:
         print('No upcoming events found.')
     for event in events:
@@ -85,12 +97,5 @@ def create_event_color_map(max_results):
             clr = colors['event'][event['colorId']]['background']
         else:
             clr = "None"
-        if event_color_map.get(name, -1) == -1:
-            hours_free = calculate_hours_free(hours_spent)
-            event_color_map[name] = [clr, start, end, hours_spent, hours_free]
-        else:
-            event_color_map[name][3] += hours_spent
-            hours_free = calculate_hours_free(event_color_map[name][3])  # cur hours spent
-            event_color_map[name][-1] = hours_free
-    return event_color_map
-
+        event_color_list.append([name, clr, start, end, hours_spent])
+    return event_color_list
