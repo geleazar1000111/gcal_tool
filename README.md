@@ -9,7 +9,7 @@ Information includes:
   - Time end
   - Time spent (duration of event)
   
-Instructions for allowing script to access calendar info:
+## Instructions for allowing script to access calendar info:
 
 **Steps below are required only for FIRST TIME USE**
   1. Acquire clients_secrets.json file (make sure to put it in the same directory as the scripts)
