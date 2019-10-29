@@ -20,7 +20,7 @@ Information includes:
   5. A verification page stating that the authorization flow has completed will show up. You're done!
   6. Your credentials will now be saved in a pickle token.
   
-Other notes:
+## Other notes:
 
   - The events used to be in a dictionary. I changed it to a list since only the first instance of a recurring event would be recorded
   - Tested it to handle all-day events (hope to do more improvements and testing soon)
