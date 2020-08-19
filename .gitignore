@@ -1,0 +1,6 @@
+.idea/
+__pycache__/
+client_secrets.json
+credentials.json
+gcal_tool_results
+token.pickle
